@@ -72,7 +72,7 @@ function AnimatedRoutes() {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/wortiq">
       <div className="min-h-screen flex flex-col bg-slate-50">
         <Navbar />
         <main className="flex-1">
