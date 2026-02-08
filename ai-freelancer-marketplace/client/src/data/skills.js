@@ -1,0 +1,188 @@
+export const skillCategories = [
+  {
+    id: 'web-development',
+    name: 'Web development',
+    skills: [
+      'React',
+      'Vue.js',
+      'Next.js',
+      'Nuxt.js',
+      'TypeScript',
+      'JavaScript',
+      'HTML/CSS',
+      'Tailwind CSS',
+      'SCSS',
+      'Node.js',
+      'Python',
+      'PHP',
+      'REST API',
+      'GraphQL',
+      'PostgreSQL',
+      'MongoDB',
+      'WordPress',
+    ],
+  },
+  {
+    id: 'mobile',
+    name: 'Mobilní aplikace',
+    skills: [
+      'React Native',
+      'Flutter',
+      'iOS',
+      'Android',
+      'Swift',
+      'Kotlin',
+      'Firebase',
+      'App Store Optimization',
+    ],
+  },
+  {
+    id: 'design',
+    name: 'Grafický design',
+    skills: [
+      'UI/UX Design',
+      'Figma',
+      'Adobe XD',
+      'Adobe Illustrator',
+      'Adobe Photoshop',
+      'Prototyping',
+      'Design Systems',
+      'Logo Design',
+      'Brand Identity',
+      'Print Design',
+      'Ilustrace',
+      'Infografiky',
+      'Ikonografie',
+    ],
+  },
+  {
+    id: 'marketing',
+    name: 'Marketing',
+    skills: [
+      'Google Ads',
+      'Facebook Ads',
+      'PPC',
+      'Social Media',
+      'Instagram',
+      'LinkedIn',
+      'TikTok',
+      'Content Planning',
+      'Marketing Strategy',
+      'Growth Hacking',
+      'Analytics',
+      'Email Marketing',
+    ],
+  },
+  {
+    id: 'copywriting',
+    name: 'Copywriting',
+    skills: [
+      'Copywriting',
+      'SEO',
+      'Content Strategy',
+      'Blog Posts',
+      'Keyword Research',
+      'Link Building',
+    ],
+  },
+  {
+    id: 'video',
+    name: 'Video',
+    skills: [
+      'Video Editing',
+      'DaVinci Resolve',
+      'After Effects',
+      'Motion Graphics',
+      'Color Grading',
+      'Produktová fotografie',
+      'Food fotografie',
+      'Adobe Lightroom',
+      'Retuš',
+    ],
+  },
+  {
+    id: 'data',
+    name: 'Data & Analytika',
+    skills: [
+      'Python',
+      'SQL',
+      'Tableau',
+      'Power BI',
+      'Data Visualization',
+      'Excel',
+      'Google Analytics',
+      'Google Search Console',
+    ],
+  },
+  {
+    id: 'devops',
+    name: 'AI & Automatizace',
+    skills: [
+      'AWS',
+      'Docker',
+      'Kubernetes',
+      'CI/CD',
+      'Terraform',
+      'Linux',
+    ],
+  },
+  {
+    id: 'translations',
+    name: 'Překlady',
+    skills: [
+      'Překlady CZ/EN',
+      'Překlady CZ/DE',
+      'Lokalizace',
+      'Korektury',
+    ],
+  },
+  {
+    id: 'research',
+    name: 'UX Research',
+    skills: [
+      'UX Research',
+      'Usability Testing',
+      'User Interviews',
+      'A/B Testing',
+      'Information Architecture',
+    ],
+  },
+];
+
+export const allSkills = skillCategories.flatMap((category) => category.skills);
+
+export const projectCategories = [
+  'Web development',
+  'Mobilní aplikace',
+  'Grafický design',
+  'Marketing',
+  'Copywriting',
+  'Video',
+  'Fotografie',
+  'Překlady',
+  'Data & Analytika',
+  'AI & Automatizace',
+];
+
+export const budgetRanges = [
+  { value: 'under-10k', label: 'Do 10 000 Kč' },
+  { value: '10k-30k', label: '10–30 000 Kč' },
+  { value: '30k-80k', label: '30–80 000 Kč' },
+  { value: '80k-200k', label: '80–200 000 Kč' },
+  { value: 'over-200k', label: '200 000+ Kč' },
+  { value: 'unspecified', label: 'Nechci specifikovat' },
+];
+
+export const deadlineOptions = [
+  { value: '2-weeks', label: 'Do 2 týdnů' },
+  { value: '1-month', label: 'Do měsíce' },
+  { value: '3-months', label: 'Do 3 měsíců' },
+  { value: 'flexible', label: 'Flexibilní' },
+];
+
+export const sortOptions = [
+  { value: 'match', label: 'Nejlepší match' },
+  { value: 'rating', label: 'Nejvyšší rating' },
+  { value: 'price-low', label: 'Nejnižší cena' },
+  { value: 'projects', label: 'Nejvíce projektů' },
+];
