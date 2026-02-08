@@ -2,6 +2,10 @@
 
 AI-powered freelancer marketplace demo for the Czech market. Describe your project in natural language and AI will analyze requirements, break them into tasks, suggest an optimal team of freelancers, and create a project plan with budget and timeline.
 
+## 🚀 Live Demo
+
+**[View Live Demo →](https://davidzemancz.github.io/wortiq/)**
+
 ## Tech Stack
 
 - **Frontend:** React 18, Vite, Tailwind CSS, Framer Motion, Zustand
@@ -45,4 +49,14 @@ npm run build
 npm run preview
 ```
 
-Built files will be in `client/dist/` - ready to deploy to any static host (Vercel, Netlify, etc.)
+Built files will be in `client/dist/` - ready to deploy to any static host.
+
+### Deploy to GitHub Pages
+
+```bash
+# Deploy to gh-pages branch
+cd client
+npx gh-pages -d dist -e wortiq
+```
+
+The app will be available at: `https://davidzemancz.github.io/wortiq/`
