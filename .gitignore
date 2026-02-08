@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+ai-freelancer-marketplace/client/node_modules/
+
+# Build output
+ai-freelancer-marketplace/client/dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment variables
+.env
+.env.local
+
+# OS files
+.DS_Store
+.DS_Store?
+
+# IDE
+.vscode/
+.idea/
+
+# gh-pages deployment
+.cache/
