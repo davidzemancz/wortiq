@@ -1,5 +1,4 @@
 import { useState, useRef, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { ChevronDown, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../ui/Button';
@@ -37,27 +36,25 @@ const CATEGORIES = [
   'AI & Automatizace',
 ];
 
-const ProjectInputForm = forwardRef(function ProjectInputForm({ onLoadingChange }, ref) {
+const ProjectInputForm = forwardRef(function ProjectInputForm(props, ref) {
   const [showDetails, setShowDetails] = useState(false);
   const textareaRef = useRef(null);
-  const navigate = useNavigate();
 
   const {
     projectDescription,
     budget,
     deadline,
     categories,
-    isAnalyzing,
     analysisError,
     setProjectDescription,
     setBudget,
     setDeadline,
     toggleCategory,
-    analyzeProject,
+    startQuiz,
   } = useProjectStore();
 
   const charCount = projectDescription.length;
-  const canSubmit = charCount >= MIN_CHARS && charCount <= MAX_CHARS && !isAnalyzing;
+  const canSubmit = charCount >= MIN_CHARS && charCount <= MAX_CHARS;
 
   const autoExpand = useCallback(() => {
     const textarea = textareaRef.current;
@@ -87,32 +84,19 @@ const ProjectInputForm = forwardRef(function ProjectInputForm({ onLoadingChange 
 
   useImperativeHandle(ref, () => ({ fillForm }), [fillForm]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (!canSubmit) return;
 
-    console.log('🚀 Starting project analysis...', {
+    console.log('🚀 Starting project quiz...', {
       description: projectDescription,
       budget,
       deadline,
       categories
     });
 
-    onLoadingChange?.(true);
-
-    try {
-      console.log('📡 Calling analyzeProject API...');
-      const result = await analyzeProject();
-      console.log('✅ Analysis successful:', result);
-
-      if (result) {
-        console.log('🎯 Navigating to /analysis');
-        navigate('/analysis');
-      }
-    } catch (error) {
-      console.error('❌ Analysis failed:', error);
-      onLoadingChange?.(false);
-    }
+    // Start the quiz flow instead of direct analysis
+    startQuiz();
   };
 
   return (
@@ -130,7 +114,6 @@ const ProjectInputForm = forwardRef(function ProjectInputForm({ onLoadingChange 
           rows={3}
           className="w-full border border-slate-300 rounded-xl px-5 py-4 text-slate-900 placeholder:text-slate-400 transition-colors duration-200 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-base leading-relaxed"
           style={{ minHeight: '120px' }}
-          disabled={isAnalyzing}
         />
         <div className="absolute bottom-3 right-4 text-xs text-slate-400">
           <span className={charCount > MAX_CHARS * 0.9 ? 'text-amber-500' : ''}>
@@ -171,7 +154,6 @@ const ProjectInputForm = forwardRef(function ProjectInputForm({ onLoadingChange 
                     value={budget}
                     onChange={(e) => setBudget(e.target.value)}
                     className="w-full border border-slate-300 rounded-lg px-4 py-3 text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-                    disabled={isAnalyzing}
                   >
                     {BUDGET_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -189,7 +171,6 @@ const ProjectInputForm = forwardRef(function ProjectInputForm({ onLoadingChange 
                     value={deadline}
                     onChange={(e) => setDeadline(e.target.value)}
                     className="w-full border border-slate-300 rounded-lg px-4 py-3 text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-                    disabled={isAnalyzing}
                   >
                     {DEADLINE_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -210,7 +191,6 @@ const ProjectInputForm = forwardRef(function ProjectInputForm({ onLoadingChange 
                       key={category}
                       type="button"
                       onClick={() => toggleCategory(category)}
-                      disabled={isAnalyzing}
                       className={`
                         rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 border
                         ${
@@ -218,7 +198,6 @@ const ProjectInputForm = forwardRef(function ProjectInputForm({ onLoadingChange 
                             ? 'bg-blue-600 text-white border-blue-600'
                             : 'bg-white text-slate-600 border-slate-300 hover:border-blue-400 hover:text-blue-600'
                         }
-                        disabled:opacity-50 disabled:cursor-not-allowed
                       `}
                     >
                       {category}
@@ -242,11 +221,10 @@ const ProjectInputForm = forwardRef(function ProjectInputForm({ onLoadingChange 
           type="submit"
           size="lg"
           disabled={!canSubmit}
-          loading={isAnalyzing}
           className="w-full md:w-auto"
         >
           <Sparkles className="w-5 h-5" />
-          {isAnalyzing ? 'AI analyzuje váš projekt...' : 'Analyzovat projekt'}
+          Pokračovat
         </Button>
         {charCount > 0 && charCount < MIN_CHARS && (
           <p className="mt-2 text-xs text-slate-400">

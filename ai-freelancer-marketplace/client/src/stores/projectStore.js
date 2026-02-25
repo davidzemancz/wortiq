@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { generateMockAnalysis } from '../data/mockAnalysis';
+import { detectProjectType } from '../data/projectTemplates';
 
 const useProjectStore = create((set, get) => ({
   // Input phase
@@ -7,6 +8,11 @@ const useProjectStore = create((set, get) => ({
   budget: null,
   deadline: null,
   categories: [],
+
+  // Quiz phase
+  detectedProjectType: null,
+  quizAnswers: null,
+  showQuiz: false,
 
   // Analysis phase
   isAnalyzing: false,
@@ -81,11 +87,40 @@ const useProjectStore = create((set, get) => ({
         : [...state.categories, cat],
     })),
 
-  analyzeProject: async () => {
+  // Quiz actions
+  startQuiz: () => {
     const { projectDescription } = get();
+    const detectedType = detectProjectType(projectDescription) || 'generic';
+
+    console.log('🔍 Detected project type:', detectedType);
+
+    set({
+      detectedProjectType: detectedType,
+      showQuiz: true,
+    });
+  },
+
+  completeQuiz: (answers) => {
+    console.log('📝 Quiz completed with answers:', answers);
+    set({
+      quizAnswers: answers,
+      showQuiz: false,
+    });
+  },
+
+  cancelQuiz: () => {
+    set({
+      showQuiz: false,
+      detectedProjectType: null,
+    });
+  },
+
+  analyzeProject: async () => {
+    const { projectDescription, quizAnswers } = get();
 
     console.log('🎬 DEMO MODE: Using mock analysis data');
     console.log('📝 Project description:', projectDescription);
+    console.log('📋 Quiz answers:', quizAnswers);
 
     set({ isAnalyzing: true, analysisError: null });
 
@@ -93,8 +128,8 @@ const useProjectStore = create((set, get) => ({
       // Simulate API delay for realistic demo experience
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Generate mock analysis
-      const analysisData = generateMockAnalysis(projectDescription);
+      // Generate mock analysis with quiz answers
+      const analysisData = generateMockAnalysis(projectDescription, quizAnswers);
 
       console.log('✨ Mock analysis generated!');
       console.log('📦 Analysis Result:', analysisData);
@@ -138,6 +173,9 @@ const useProjectStore = create((set, get) => ({
       budget: null,
       deadline: null,
       categories: [],
+      detectedProjectType: null,
+      quizAnswers: null,
+      showQuiz: false,
       isAnalyzing: false,
       analysisResult: null,
       analysisError: null,

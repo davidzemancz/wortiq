@@ -220,8 +220,14 @@ function generateGenericAnalysis(description) {
 /**
  * Main mock analysis generator.
  * Detects project type from description and returns appropriate template-based analysis.
+ * @param {string} description - The project description
+ * @param {object} quizAnswers - Answers from the requirements quiz (optional, for Phase 2)
  */
-export const generateMockAnalysis = (description) => {
+export const generateMockAnalysis = (description, quizAnswers = null) => {
+  // Log quiz answers for debugging (Phase 2 will use these to scale the analysis)
+  if (quizAnswers) {
+    console.log('📊 Quiz answers received:', quizAnswers);
+  }
   if (!description || description.trim().length < 10) {
     return generateGenericAnalysis(description || '');
   }
