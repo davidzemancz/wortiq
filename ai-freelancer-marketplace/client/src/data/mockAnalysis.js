@@ -1,6 +1,50 @@
 import { projectTemplates, detectProjectType } from './projectTemplates';
 
 /**
+ * Budget caps in CZK based on quiz answer
+ */
+const BUDGET_CAPS = {
+  micro: 30000,
+  small: 80000,
+  medium: 150000,
+  large: 300000,
+  enterprise: 600000,
+};
+
+/**
+ * Timeline multipliers based on quiz answer
+ */
+const TIMELINE_MULTIPLIERS = {
+  asap: 0.6,      // Faster = fewer features, more parallel work
+  normal: 1.0,
+  relaxed: 1.2,   // More time = more polish
+  flexible: 1.0,
+};
+
+/**
+ * Design level cost multipliers
+ */
+const DESIGN_MULTIPLIERS = {
+  template: 0.4,
+  basic: 0.5,
+  mvp: 0.5,
+  custom: 1.0,
+  polished: 1.0,
+  premium: 1.5,
+};
+
+/**
+ * Scale factor based on budget tier
+ */
+function getScaleFactor(budgetCap) {
+  if (budgetCap <= 30000) return 0.25;   // micro - MVP only
+  if (budgetCap <= 80000) return 0.5;    // small - basic features
+  if (budgetCap <= 150000) return 0.75;  // medium - standard
+  if (budgetCap <= 300000) return 1.0;   // large - full featured
+  return 1.2;                             // enterprise - premium
+}
+
+/**
  * Generate a smart project name from description and detected type.
  */
 function generateProjectName(description, template, typeKey) {
@@ -218,16 +262,246 @@ function generateGenericAnalysis(description) {
 }
 
 /**
+ * Scale tasks and team based on quiz answers
+ */
+function scaleProjectToQuiz(template, typeKey, quizAnswers) {
+  const budgetKey = quizAnswers?.budget || 'medium';
+  const timelineKey = quizAnswers?.timeline || 'normal';
+  const designKey = quizAnswers?.designLevel || 'custom';
+
+  const budgetCap = BUDGET_CAPS[budgetKey] || 150000;
+  const scaleFactor = getScaleFactor(budgetCap);
+  const timelineMultiplier = TIMELINE_MULTIPLIERS[timelineKey] || 1.0;
+  const designMultiplier = DESIGN_MULTIPLIERS[designKey] || 1.0;
+
+  console.log('📊 Scaling with:', { budgetCap, scaleFactor, timelineMultiplier, designMultiplier });
+
+  // Scale tasks - prioritize high priority, reduce hours for lower budgets
+  let scaledTasks = template.tasks.map((task, index) => {
+    const isDesignTask = task.category === 'design';
+    const taskMultiplier = isDesignTask ? designMultiplier : 1.0;
+
+    // Scale hours based on budget and design level
+    let scaledHours = Math.round(task.estimatedHours * scaleFactor * taskMultiplier);
+
+    // Minimum hours to make sense
+    scaledHours = Math.max(scaledHours, 8);
+
+    return {
+      ...task,
+      id: `task-${index + 1}`,
+      estimatedHours: scaledHours,
+    };
+  });
+
+  // For very small budgets, remove lower priority tasks
+  if (scaleFactor <= 0.5) {
+    scaledTasks = scaledTasks.filter(task => task.priority === 'high' || task.category === 'design');
+  }
+
+  // Scale team hours based on remaining tasks
+  const taskHoursByCategory = {};
+  scaledTasks.forEach(task => {
+    taskHoursByCategory[task.category] = (taskHoursByCategory[task.category] || 0) + task.estimatedHours;
+  });
+
+  let scaledTeam = template.team.map((member, index) => {
+    // Calculate hours from tasks this member would work on
+    const memberTasks = scaledTasks.filter(t => member.taskIds?.includes(t.id) ||
+      member.requiredSkills?.some(skill => t.skills?.includes(skill)));
+
+    let totalHours = memberTasks.reduce((sum, t) => sum + t.estimatedHours, 0);
+
+    // Fallback: scale original hours
+    if (totalHours === 0) {
+      totalHours = Math.round(member.estimatedHours * scaleFactor);
+    }
+
+    // Adjust hourly rate based on seniority for smaller budgets
+    let rateMultiplier = 1.0;
+    if (scaleFactor <= 0.5) {
+      // Use more junior rates for smaller budgets
+      rateMultiplier = 0.8;
+    }
+
+    return {
+      ...member,
+      estimatedHours: Math.max(totalHours, 8),
+      estimatedHourlyRate: {
+        min: Math.round(member.estimatedHourlyRate.min * rateMultiplier),
+        max: Math.round(member.estimatedHourlyRate.max * rateMultiplier),
+        currency: 'CZK',
+      },
+    };
+  });
+
+  // For very small budgets, combine roles
+  if (scaleFactor <= 0.25) {
+    // Keep only essential roles
+    scaledTeam = scaledTeam.filter((_, index) => index < 2);
+  } else if (scaleFactor <= 0.5) {
+    // Remove specialty roles
+    scaledTeam = scaledTeam.filter((_, index) => index < 3);
+  }
+
+  // Calculate budget and ensure it fits within cap
+  let budget = calculateBudget(scaledTeam, scaledTasks, template.complexity);
+
+  // If over budget, scale down further
+  let iterations = 0;
+  while (budget.total > budgetCap && iterations < 5) {
+    iterations++;
+    const overageRatio = budgetCap / budget.total;
+
+    // Scale down hours across the board
+    scaledTeam = scaledTeam.map(member => ({
+      ...member,
+      estimatedHours: Math.max(Math.round(member.estimatedHours * overageRatio), 8),
+    }));
+
+    scaledTasks = scaledTasks.map(task => ({
+      ...task,
+      estimatedHours: Math.max(Math.round(task.estimatedHours * overageRatio), 4),
+    }));
+
+    budget = calculateBudget(scaledTeam, scaledTasks, template.complexity);
+  }
+
+  // Adjust timeline based on team size and hours
+  const totalHours = scaledTeam.reduce((sum, m) => sum + m.estimatedHours, 0);
+  const hoursPerWeek = scaledTeam.length * 30; // ~30 hours per person per week
+  let weeks = Math.ceil(totalHours / hoursPerWeek);
+  weeks = Math.round(weeks * timelineMultiplier);
+  weeks = Math.max(weeks, 2); // Minimum 2 weeks
+
+  // Scale milestones
+  const scaledMilestones = template.milestones
+    .filter((_, index) => index < Math.ceil(template.milestones.length * scaleFactor) || index === 0)
+    .map((milestone, index) => ({
+      ...milestone,
+      weekNumber: Math.min(Math.round(milestone.weekNumber * (weeks / template.weeks)), weeks),
+    }));
+
+  // Generate context-aware recommendations
+  const recommendations = generateScaledRecommendations(
+    budgetKey,
+    scaleFactor,
+    template,
+    quizAnswers,
+    typeKey
+  );
+
+  return {
+    tasks: scaledTasks,
+    team: scaledTeam,
+    budget,
+    weeks,
+    milestones: scaledMilestones,
+    recommendations,
+    complexity: scaleFactor <= 0.5 ? 'low' : (scaleFactor >= 1.0 ? template.complexity : 'medium'),
+  };
+}
+
+/**
+ * Generate recommendations based on quiz answers and scaling
+ */
+function generateScaledRecommendations(budgetKey, scaleFactor, template, quizAnswers, typeKey) {
+  const recommendations = [];
+
+  // Budget-based recommendations
+  if (scaleFactor <= 0.25) {
+    recommendations.push('S tímto rozpočtem doporučujeme začít s MVP verzí a postupně rozšiřovat funkcionalitu');
+    recommendations.push('Zvažte použití hotových šablon a komponent pro urychlení vývoje');
+  } else if (scaleFactor <= 0.5) {
+    recommendations.push('Rozpočet pokrývá základní funkcionalitu. Prémiové funkce doporučujeme přidat v další fázi');
+  } else if (scaleFactor >= 1.0) {
+    recommendations.push('Rozpočet umožňuje komplexní řešení s důrazem na kvalitu a uživatelský zážitek');
+  }
+
+  // Timeline-based recommendations
+  if (quizAnswers?.timeline === 'asap') {
+    recommendations.push('Pro rychlé dodání doporučujeme paralelní práci více členů týmu');
+  } else if (quizAnswers?.timeline === 'relaxed') {
+    recommendations.push('Delší časový rámec umožní důkladnější testování a iterace designu');
+  }
+
+  // Type-specific recommendations based on quiz answers
+  if (typeKey === 'ecommerce') {
+    if (quizAnswers?.payments?.length > 0) {
+      recommendations.push(`Integrace platebních bran (${quizAnswers.payments.join(', ')}) je zahrnuta v rozpočtu`);
+    }
+    if (quizAnswers?.productCount === 'large') {
+      recommendations.push('Pro velký katalog doporučujeme implementovat pokročilé vyhledávání a filtry');
+    }
+  } else if (typeKey === 'mobileApp') {
+    if (quizAnswers?.platforms === 'both') {
+      recommendations.push('Cross-platform vývoj (iOS + Android) je cenově efektivnější než nativní vývoj');
+    }
+    if (quizAnswers?.backend === 'complex') {
+      recommendations.push('Komplexní backend vyžaduje důkladnou API dokumentaci pro budoucí rozšíření');
+    }
+  } else if (typeKey === 'marketing') {
+    if (quizAnswers?.adBudget && quizAnswers.adBudget !== 'none') {
+      recommendations.push('Media spend (PPC rozpočet) není zahrnut v této kalkulaci – počítejte s ním zvlášť');
+    }
+  }
+
+  // Add some from template if we have space
+  const remaining = 5 - recommendations.length;
+  if (remaining > 0) {
+    recommendations.push(...template.recommendations.slice(0, remaining));
+  }
+
+  return recommendations.slice(0, 5);
+}
+
+/**
+ * Generate summary based on quiz answers
+ */
+function generateScaledSummary(typeKey, quizAnswers, scaleFactor) {
+  const budgetDescriptions = {
+    micro: 'MVP verzi',
+    small: 'základní verzi',
+    medium: 'standardní řešení',
+    large: 'komplexní řešení',
+    enterprise: 'enterprise řešení',
+  };
+
+  const budgetKey = quizAnswers?.budget || 'medium';
+  const scope = budgetDescriptions[budgetKey] || 'řešení';
+
+  const typeDescriptions = {
+    ecommerce: `Na základě vašich požadavků navrhuji ${scope} e-shopu`,
+    mobileApp: `Navrhuji ${scope} mobilní aplikace`,
+    saas: `Projekt zahrnuje ${scope} SaaS platformy`,
+    marketing: `Připravili jsme ${scope} marketingové kampaně`,
+    aiml: `Navrhuji ${scope} AI/ML integrace`,
+    blockchain: `Projekt pokrývá ${scope} Web3 aplikace`,
+  };
+
+  let summary = typeDescriptions[typeKey] || `Navrhuji ${scope} na míru`;
+
+  // Add context based on quiz answers
+  if (scaleFactor <= 0.5) {
+    summary += '. Důraz je kladen na klíčové funkce s možností rozšíření v budoucnu.';
+  } else if (scaleFactor >= 1.0) {
+    summary += '. Zahrnuje kompletní funkcionalitu včetně pokročilých funkcí a optimalizace.';
+  } else {
+    summary += '. Vyvážený poměr funkcí a rozpočtu pro solidní základ projektu.';
+  }
+
+  return summary;
+}
+
+/**
  * Main mock analysis generator.
  * Detects project type from description and returns appropriate template-based analysis.
  * @param {string} description - The project description
- * @param {object} quizAnswers - Answers from the requirements quiz (optional, for Phase 2)
+ * @param {object} quizAnswers - Answers from the requirements quiz
  */
 export const generateMockAnalysis = (description, quizAnswers = null) => {
-  // Log quiz answers for debugging (Phase 2 will use these to scale the analysis)
-  if (quizAnswers) {
-    console.log('📊 Quiz answers received:', quizAnswers);
-  }
+  console.log('📊 Generating analysis with quiz answers:', quizAnswers);
+
   if (!description || description.trim().length < 10) {
     return generateGenericAnalysis(description || '');
   }
@@ -241,6 +515,37 @@ export const generateMockAnalysis = (description, quizAnswers = null) => {
 
   const template = projectTemplates[typeKey];
   const projectName = generateProjectName(description, template, typeKey);
+
+  // If we have quiz answers, scale the project accordingly
+  if (quizAnswers) {
+    const scaled = scaleProjectToQuiz(template, typeKey, quizAnswers);
+    const scaleFactor = getScaleFactor(BUDGET_CAPS[quizAnswers.budget] || 150000);
+    const projectSummary = generateScaledSummary(typeKey, quizAnswers, scaleFactor);
+
+    return {
+      projectName,
+      projectSummary,
+      complexity: scaled.complexity,
+      estimatedDuration: {
+        weeks: scaled.weeks,
+        description: `Přibližně ${scaled.weeks} týdnů s ${scaled.team.length}členným týmem`,
+      },
+      tasks: scaled.tasks,
+      suggestedTeam: scaled.team,
+      budget: scaled.budget,
+      milestones: scaled.milestones,
+      risks: template.risks.slice(0, 3).map((r) => ({ ...r })),
+      recommendations: scaled.recommendations,
+      // Include quiz context for display
+      quizContext: {
+        budgetTier: quizAnswers.budget,
+        timeline: quizAnswers.timeline,
+        answers: quizAnswers,
+      },
+    };
+  }
+
+  // Fallback to original behavior without quiz
   const projectSummary = generateProjectSummary(description, typeKey);
 
   return {

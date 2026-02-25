@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nAdd requirements quiz for better project scoping\n\n- Add quiz questions data with market context per project type\n- Create RequirementsQuiz component with step-by-step flow\n- Show market info (typical budget, timeline) before questions\n- Update project flow: description → quiz → analysis\n- Store quiz answers in projectStore for Phase 2\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

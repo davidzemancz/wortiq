@@ -10,6 +10,7 @@ import BudgetEstimate from '../components/analysis/BudgetEstimate';
 import TimelineView from '../components/analysis/TimelineView';
 import ApprovalPanel from '../components/analysis/ApprovalPanel';
 import ConfidenceIndicator from '../components/analysis/ConfidenceIndicator';
+import ProjectScopeCard from '../components/analysis/ProjectScopeCard';
 import { freelancers } from '../data/freelancers';
 import useProjectStore from '../stores/projectStore';
 import { formatCurrency as formatCZK } from '../utils/formatCurrency';
@@ -45,6 +46,7 @@ const staggerContainer = {
 export default function AnalysisResultPage() {
   const navigate = useNavigate();
   const analysisResult = useProjectStore((state) => state.analysisResult);
+  const detectedProjectType = useProjectStore((state) => state.detectedProjectType);
 
   // Redirect to new-project if there's no analysis result
   useEffect(() => {
@@ -75,6 +77,7 @@ export default function AnalysisResultPage() {
     milestones = [],
     risks = [],
     recommendations = [],
+    quizContext,
   } = analysisResult;
 
   const complexityConfig = {
@@ -162,6 +165,16 @@ export default function AnalysisResultPage() {
         animate="visible"
         className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
       >
+        {/* Project Scope Card - shows quiz context and what's included */}
+        {quizContext && (
+          <motion.div variants={sectionVariants}>
+            <ProjectScopeCard
+              quizContext={quizContext}
+              projectType={detectedProjectType}
+            />
+          </motion.div>
+        )}
+
         {/* AI Confidence + project overview */}
         <motion.div variants={sectionVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
           <div className="lg:col-span-2">
